@@ -1,12 +1,22 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // hide console window on Windows in release
 #![allow(rustdoc::missing_crate_level_docs)] // it's an example
 
+use rand::Rng;
 use sdl3::event::Event;
 use sdl3::keyboard::Keycode;
 use sdl3::pixels::Color;
 use sdl3::render::{FPoint, FRect, WindowCanvas};
 use std::time::Duration;
-use rand::Rng;
+
+fn get_food_cords() -> Vec<i8> {
+    vec![
+        rand::rng().random_range(0..10),
+        rand::rng().random_range(0..10),
+        rand::rng().random_range(0..10),
+    ]
+}
+
+const OFFSET: FPoint = FPoint { x: 50.0, y: 50.0 };
 
 fn main() {
     let sdl_context = sdl3::init().unwrap();
@@ -28,6 +38,7 @@ fn main() {
 
     let perspective = FPoint::new(150.0, 150.0);
     let small_perspective = FPoint::new(15.0, 15.0);
+    let mut move_vector = [1, 0, 0];
 
     let base_cube = ColoredCube::new(
         50.0,
@@ -39,48 +50,44 @@ fn main() {
         false,
     );
 
-    let mut cubes: Vec<ColoredCube> = Vec::new();
+    // let mut cubes: Vec<ColoredCube> = Vec::new();
     let cube_side = 30.0;
     let cube_offset = 3.0;
+    let mut x = 0;
+    let mut y = 0;
+    let mut z = 0;
 
-    for x in 0..5 {
-        for y in 0..5 {
-            for z in 0..5 {
-                let random = rand::rng().random::<bool>();
-                if random {
-                    continue;
-                }
-                cubes.push(ColoredCube::virtual_3d(
-                    x as f32 * (cube_side + cube_offset),
-                    y as f32 * (cube_side + cube_offset),
-                    z as f32 * (cube_side + cube_offset),
-                    cube_side,
-                    cube_side,
-                    small_perspective,
-                    Color::RGB(255, 255, 255),
-                    false,
-                    FPoint::new(50.0, 50.0),
-                ));
-            }
-        }
-    }
+    let move_speed = 30;
 
-    // let cursor_cube = ColoredCube::virtual_3d(
-    //     30.0,
-    //     10.0,
-    //     100.0,
-    //     30.0,
-    //     30.0,
-    //     small_perspective,
-    //     Color::RGB(255, 255, 255),
-    //     false,
-    //     FPoint::new(50.0, 50.0),
-    // );
+    let mut cubes: Vec<ColoredCube> = Vec::new();
 
-    // cubes.push(cursor_cube);
+    cubes.push(ColoredCube::virtual_3d(
+        x as f32 * (cube_side + cube_offset),
+        y as f32 * (cube_side + cube_offset),
+        z as f32 * (cube_side + cube_offset),
+        cube_side,
+        cube_side,
+        small_perspective,
+        Color::RGB(255, 255, 255),
+        false,
+        OFFSET,
+    ));
+
+    let mut food_pos = get_food_cords();
+    let mut food = ColoredCube::virtual_3d(
+        food_pos[0] as f32 * (cube_side + cube_offset),
+        food_pos[1] as f32 * (cube_side + cube_offset),
+        food_pos[2] as f32 * (cube_side + cube_offset),
+        cube_side,
+        cube_side,
+        small_perspective,
+        Color::RGB(0, 255, 0),
+        false,
+        OFFSET,
+    );
 
     'running: loop {
-        i = (i + 1) % 255;
+        i += 1;
         canvas.set_draw_color(Color::RGB(0, 255, 255));
         canvas.clear();
 
@@ -91,18 +98,89 @@ fn main() {
                     keycode: Some(Keycode::Escape),
                     ..
                 } => break 'running,
-                Event::MouseMotion { xrel, yrel, .. } => {
-
+                Event::KeyDown {
+                    keycode: Some(Keycode::W),
+                    ..
+                } => {
+                    move_vector = [0, 1, 0];
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::D),
+                    ..
+                } => {
+                    move_vector = [1, 0, 0];
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Down),
+                    ..
+                } => {
+                    move_vector = [0, 0, -1];
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::S),
+                    ..
+                } => {
+                    move_vector = [0, -1, 0];
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::A),
+                    ..
+                } => {
+                    move_vector = [-1, 0, 0];
+                }
+                Event::KeyDown {
+                    keycode: Some(Keycode::Up),
+                    ..
+                } => {
+                    move_vector = [0, 0, 1];
                 }
                 _ => {}
             }
         }
 
+        if i % move_speed == 0 {
+            x += move_vector[0];
+            y += move_vector[1];
+            z += move_vector[2];
+
+            cubes.push(ColoredCube::virtual_3d(
+                x as f32 * (cube_side + cube_offset),
+                y as f32 * (cube_side + cube_offset),
+                z as f32 * (cube_side + cube_offset),
+                cube_side,
+                cube_side,
+                small_perspective,
+                Color::RGB(255, 255, 255),
+                false,
+                OFFSET,
+            ));
+            if x == food_pos[0] && y == food_pos[1] && z == food_pos[2] {
+                food_pos = get_food_cords();
+                food = ColoredCube::virtual_3d(
+                    food_pos[0] as f32 * (cube_side + cube_offset),
+                    food_pos[1] as f32 * (cube_side + cube_offset),
+                    food_pos[2] as f32 * (cube_side + cube_offset),
+                    cube_side,
+                    cube_side,
+                    small_perspective,
+                    Color::RGB(0, 255, 0),
+                    false,
+                    OFFSET,
+                );
+            } else {
+                println!("food position {:?}", food_pos);
+                println!("head position {:?}", [x, y, z]);
+                cubes.remove(0);
+            }
+        }
+
         base_cube.draw(&mut canvas);
 
-        for cube in &mut cubes {
+        for cube in &cubes {
             cube.draw(&mut canvas);
         }
+
+        food.draw(&mut canvas);
 
         canvas.present();
         std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
@@ -117,7 +195,6 @@ struct ColoredCube {
     pub perspective: FPoint,
     pub color: Color,
     pub fill: bool,
-    rect: FRect,
 }
 
 impl ColoredCube {
@@ -138,7 +215,6 @@ impl ColoredCube {
             perspective,
             color,
             fill,
-            rect: FRect::new(x, y, w, h),
         }
     }
 
@@ -162,12 +238,6 @@ impl ColoredCube {
             perspective,
             color,
             fill,
-            rect: FRect::new(
-                x + offset.x + perspective.x * z / len,
-                y + offset.y + perspective.y * z / len,
-                w,
-                h,
-            ),
         }
     }
     fn draw_perspective_lines(
@@ -221,10 +291,11 @@ impl ColoredCube {
 
     pub fn draw(&self, canvas: &mut WindowCanvas) {
         canvas.set_draw_color(self.color);
-        canvas.draw_rect(self.rect).unwrap();
+        let base_rect = FRect::new(self.x, self.y, self.w, self.h);
+        canvas.draw_rect(base_rect).unwrap();
         if self.fill {
-            canvas.fill_rect(self.rect).unwrap();
+            canvas.fill_rect(base_rect).unwrap();
         }
-        Self::draw_perspective_lines(self.perspective, canvas, self.rect, self.color);
+        Self::draw_perspective_lines(self.perspective, canvas, base_rect, self.color);
     }
 }
