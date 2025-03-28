@@ -81,7 +81,7 @@ fn main() {
         cube_side,
         cube_side,
         small_perspective,
-        Color::RGB(0, 255, 0),
+        Color::RGB(0, 0, 255),
         false,
         OFFSET,
     );
@@ -102,7 +102,7 @@ fn main() {
                     keycode: Some(Keycode::W),
                     ..
                 } => {
-                    move_vector = [0, 1, 0];
+                    move_vector = [0, -1, 0];
                 }
                 Event::KeyDown {
                     keycode: Some(Keycode::D),
@@ -120,7 +120,7 @@ fn main() {
                     keycode: Some(Keycode::S),
                     ..
                 } => {
-                    move_vector = [0, -1, 0];
+                    move_vector = [0, 1, 0];
                 }
                 Event::KeyDown {
                     keycode: Some(Keycode::A),
@@ -163,7 +163,7 @@ fn main() {
                     cube_side,
                     cube_side,
                     small_perspective,
-                    Color::RGB(0, 255, 0),
+                    Color::RGB(0, 0, 255),
                     false,
                     OFFSET,
                 );
